@@ -1,8 +1,8 @@
 import axios from "axios";
-import { PlayerModel } from "../models/player.model";
-import { UserModel } from "../models/user.model";
-import { PageModel } from "../models/page.model";
-import { DataModel } from "../models/data.model";
+import type { PlayerModel } from "../models/player.model";
+import type { UserModel } from "../models/user.model";
+import type { PageModel } from "../models/page.model";
+import type { DataModel } from "../models/data.model";
 import { configDotenv } from "dotenv";
 
 const client = axios.create({
