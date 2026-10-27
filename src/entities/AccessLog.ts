@@ -18,6 +18,6 @@ export class AccessLog {
   @Column("varchar", { name: "method", length: 255 })
   method: string;
 
-  @Column("varchar", { name: "created_at", length: 255 })
-  createdAt: string;
+  @Column("datetime", { name: "created_at"})
+  createdAt: Date;
 }

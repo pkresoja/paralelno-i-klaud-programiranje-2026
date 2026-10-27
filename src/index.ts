@@ -3,6 +3,8 @@ import cors from "cors"
 import morgan from "morgan"
 import { AppDataSource } from "./db"
 import { SyncService } from "./services/sync.service"
+import { SyncRoute } from "./routes/sync.route"
+import { LogService } from "./services/log.service"
 
 const app = express()
 app.use(cors())
@@ -17,6 +19,12 @@ AppDataSource.initialize().then(async () => {
     })
 })
 
-app.get('/sync', async (req, res) => {
-    await SyncService.syncAll()
+
+// Access log
+app.use(async (req, res, next) => {
+    await LogService.createAccessLog(req)
+    next()
 })
+
+// Endpoints
+app.use('/api/sync', SyncRoute)

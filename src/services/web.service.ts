@@ -3,7 +3,6 @@ import type { PlayerModel } from "../models/player.model";
 import type { UserModel } from "../models/user.model";
 import type { PageModel } from "../models/page.model";
 import type { DataModel } from "../models/data.model";
-import { configDotenv } from "dotenv";
 
 const client = axios.create({
     headers: {
@@ -15,7 +14,6 @@ const client = axios.create({
     }
 })
 
-configDotenv()
 const token = process.env.DISCORD_BOT_TOKEN
 
 export class WebService {
@@ -38,8 +36,12 @@ export class WebService {
 
     static async getLinkData(page: number) {
         return await client.request<PageModel<DataModel>>({
-            url: `https://link.samifying.com/api/data?size=30&page=${page}`,
-            method: 'GET'
+            url: `https://link.samifying.com/api/data`,
+            method: 'GET',
+            params: {
+                size: 5,
+                page: page
+            }
         })
     }
 }

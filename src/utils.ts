@@ -25,3 +25,9 @@ export function getAvatarUrl(user: UserModel, size = 128) {
 
     return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
 }
+
+export function log(logs: string[], text: string, isError = false) {
+    const line = `[${new Date().toLocaleString()}] [${isError ? 'ERROR' : 'INFO'}] ${text}`
+    logs.push(line)
+    console.log(line)
+}
