@@ -39,7 +39,7 @@ export class WebService {
             url: `https://link.samifying.com/api/data`,
             method: 'GET',
             params: {
-                size: 5,
+                size: 30,
                 page: page
             }
         })

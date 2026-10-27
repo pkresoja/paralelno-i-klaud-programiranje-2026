@@ -38,7 +38,7 @@ export class SyncService {
                 }
             }
 
-            if (rsp.data.last || rsp.data.number > 0) {
+            if (rsp.data.last) {
                 break
             }
             page++
