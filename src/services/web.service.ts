@@ -44,4 +44,18 @@ export class WebService {
             }
         })
     }
+
+    static async getLinkDataIds() {
+        return await client.request<number[]>({
+            url: 'http://link.samifying.com/api/data/list/ids',
+            method: 'GET'
+        })
+    }
+
+    static async getLinkDataById(id: number) {
+        return await client.request<DataModel>({
+            url: `http://link.samifying.com/api/data/${id}`,
+            method: 'GET'
+        })
+    }
 }

@@ -10,3 +10,8 @@ SyncRoute.post('/all', async (req, res) => {
     await LogService.createCacheLog(start, logs)
     return res.json(logs)
 })
+
+SyncRoute.post('/missing', async (req, res) => {
+    const data = await SyncService.syncMissing()
+    return res.json(data)
+})
