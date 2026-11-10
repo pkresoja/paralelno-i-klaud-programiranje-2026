@@ -47,7 +47,7 @@ export class SyncService {
         const remoteIds = await WebService.getLinkDataIds()
 
         const missing = remoteIds.data.filter(id => !localIds.includes(id))
-        const toBeRemoved = localIds.filter(id => !remoteIds.data.includes(id))
+        // const toBeRemoved = localIds.filter(id => !remoteIds.data.includes(id))
         const logs: string[] = []
 
         for (let id of missing) {
