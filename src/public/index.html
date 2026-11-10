@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Synchronization Dashboard</title>
+    <!-- Bootstrap 5.3/5.4 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        .avatar-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Floating Log Console in Bottom-Right Corner */
+        #log-console {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 380px;
+            max-height: 250px;
+            background: #212529;
+            color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.25);
+            z-index: 1050;
+            display: none;
+            overflow: hidden;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        #log-header {
+            background: #343a40;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #log-body {
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 0;
+            list-style: none;
+        }
+
+        #log-body li {
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="#"><i class="fa-solid fa-server me-2"></i>Sync Dashboard</a>
+            <div class="d-flex gap-2">
+                <button class="btn btn-warning btn-sm text-nowrap" id="btn-missing-sync"
+                    onclick="triggerSync('/api/sync/missing', 'Missing Records Sync')">
+                    <i class="fa-solid fa-cloud-arrow-down me-1"></i> Missing Sync
+                </button>
+                <button class="btn btn-danger btn-sm text-nowrap" id="btn-full-sync"
+                    onclick="triggerSync('/api/sync/all', 'Full Sync')">
+                    <i class="fa-solid fa-rotate me-1"></i> Full Sync
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="container-fluid px-3 px-md-4 py-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <!-- Local search bar -->
+                <div class="input-group input-group-sm w-100" style="max-width: 350px;">
+                    <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-search"></i></span>
+                    <input type="text" id="table-search" class="form-control" placeholder="Filter records locally..."
+                        onkeyup="filterData()">
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadData()"><i
+                        class="fa-solid fa-arrows-rotate me-1"></i> Refresh</button>
+            </div>
+            <div class="card-body p-2 p-md-3">
+
+                <!-- Desktop Table View -->
+                <div class="d-none d-md-block">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Avatar</th>
+                                <th>ID</th>
+                                <th>Minecraft Name</th>
+                                <th>Discord ID</th>
+                                <th>Discord Name</th>
+                                <th>Created At</th>
+                                <th>Cached At</th>
+                                <th class="text-center">Options</th>
+                            </tr>
+                        </thead>
+                        <tbody id="desktop-table-body">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">Loading records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Stacked Cards View -->
+                <div class="d-block d-md-none" id="mobile-cards-container">
+                    <div class="text-center py-4 text-muted">Loading records...</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Log Console -->
+    <div id="log-console">
+        <div id="log-header" onclick="toggleLogConsole()">
+            <span><i class="fa-solid fa-terminal me-2"></i>Sync Logs <span id="spinner-container"></span></span>
+            <i class="fa-solid fa-chevron-up" id="log-toggle-icon"></i>
+        </div>
+        <ul id="log-body">
+            <li>Initialized...</li>
+        </ul>
+    </div>
+
+    <!-- Bootstrap & JS Logic -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let allRecords = [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadData();
+        });
+
+        async function loadData() {
+            try {
+                const response = await fetch('/api/data');
+                if (!response.ok) throw new Error('Failed to fetch data');
+                allRecords = await response.json();
+                renderViews(allRecords);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('desktop-table-body').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> Error loading data from /api/data</td></tr>`;
+                document.getElementById('mobile-cards-container').innerHTML = `<div class="text-center py-4 text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> Error loading data</div>`;
+            }
+        }
+
+        function renderViews(data) {
+            renderDesktopTable(data);
+            renderMobileCards(data);
+        }
+
+        function renderDesktopTable(data) {
+            const tbody = document.getElementById('desktop-table-body');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No matching records found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(item => `
+                <tr>
+                    <td><img src="${item.avatar || 'https://via.placeholder.com/40'}" alt="Avatar" class="avatar-img"></td>
+                    <td><code>${item.dataId}</code></td>
+                    <td><strong class="text-break">${escapeHtml(item.minecraftName)}</strong></td>
+                    <td><code class="text-break">${item.discordId}</code></td>
+                    <td class="text-break">${escapeHtml(item.discordName)}</td>
+                    <td><small class="text-break">${new Date(item.createdAt).toLocaleString()}</small></td>
+                    <td><small class="text-break">${new Date(item.cachedAt).toLocaleString()}</small></td>
+                    <td class="text-center">
+                        <div class="d-inline-flex gap-1 justify-content-center">
+                            <button class="btn btn-primary btn-sm text-nowrap" onclick="triggerSync('/api/sync/id/${item.dataId}', 'Manual Sync (ID: ${item.dataId})')">
+                                <i class="fa-solid fa-sync me-1"></i> Sync
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm text-nowrap" onclick="copyToClipboard('${item.uuid}', this)" title="Copy UUID">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderMobileCards(data) {
+            const container = document.getElementById('mobile-cards-container');
+            if (!data || data.length === 0) {
+                container.innerHTML = `<div class="text-center py-4 text-muted">No matching records found.</div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(item => `
+                <div class="card mb-3 shadow-sm border">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="${item.avatar || 'https://via.placeholder.com/40'}" alt="Avatar" class="avatar-img me-3">
+                            <div>
+                                <h6 class="mb-0 fw-bold">${escapeHtml(item.minecraftName)}</h6>
+                                <small class="text-muted">ID: ${item.dataId}</small>
+                            </div>
+                        </div>
+                        <ul class="list-group list-group-flush small mb-3">
+                            <li class="list-group-item px-0 d-flex justify-content-between">
+                                <span class="text-muted">Discord Name:</span>
+                                <span>${escapeHtml(item.discordName)}</span>
+                            </li>
+                            <li class="list-group-item px-0 d-flex justify-content-between">
+                                <span class="text-muted">Discord ID:</span>
+                                <code class="text-break">${item.discordId}</code>
+                            </li>
+                            <li class="list-group-item px-0 d-flex justify-content-between">
+                                <span class="text-muted">Created At:</span>
+                                <span>${new Date(item.createdAt).toLocaleString()}</span>
+                            </li>
+                            <li class="list-group-item px-0 d-flex justify-content-between">
+                                <span class="text-muted">Cached At:</span>
+                                <span>${new Date(item.cachedAt).toLocaleString()}</span>
+                            </li>
+                        </ul>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm flex-grow-1 text-nowrap" onclick="triggerSync('/api/sync/id/${item.dataId}', 'Manual Sync (ID: ${item.dataId})')">
+                                <i class="fa-solid fa-sync me-1"></i> Manual Sync
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm text-nowrap" onclick="copyToClipboard('${item.uuid}', this)" title="Copy UUID">
+                                <i class="fa-regular fa-copy me-1"></i> Copy UUID
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Helper function to copy text to clipboard with feedback
+        function copyToClipboard(text, btnElement) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHTML = btnElement.innerHTML;
+                btnElement.innerHTML = `<i class="fa-solid fa-check text-success"></i>`;
+                btnElement.classList.add('btn-success', 'text-white');
+                btnElement.classList.remove('btn-outline-secondary');
+
+                setTimeout(() => {
+                    btnElement.innerHTML = originalHTML;
+                    btnElement.classList.remove('btn-success', 'text-white');
+                    btnElement.classList.add('btn-outline-secondary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        function filterData() {
+            const query = document.getElementById('table-search').value.toLowerCase().trim();
+            if (!query) {
+                renderViews(allRecords);
+                return;
+            }
+
+            const filtered = allRecords.filter(item => {
+                return (
+                    String(item.dataId).toLowerCase().includes(query) ||
+                    (item.uuid && item.uuid.toLowerCase().includes(query)) ||
+                    (item.minecraftName && item.minecraftName.toLowerCase().includes(query)) ||
+                    (item.discordId && item.discordId.toLowerCase().includes(query)) ||
+                    (item.discordName && item.discordName.toLowerCase().includes(query))
+                );
+            });
+
+            renderViews(filtered);
+        }
+
+        async function triggerSync(url, actionName) {
+            showLogConsole();
+            setLoadingState(true, actionName);
+
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                if (!response.ok) throw new Error(`Server returned status ${response.status}`);
+
+                const logs = await response.json();
+                appendLogs([`[SUCCESS] ${actionName} completed.`, ...(Array.isArray(logs) ? logs : [JSON.stringify(logs)])]);
+                loadData();
+            } catch (error) {
+                console.error(error);
+                appendLogs([`[ERROR] Failed during ${actionName}: ${error.message}`]);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        function showLogConsole() {
+            const consoleBox = document.getElementById('log-console');
+            consoleBox.style.display = 'block';
+        }
+
+        function toggleLogConsole() {
+            const body = document.getElementById('log-body');
+            const icon = document.getElementById('log-toggle-icon');
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                icon.className = 'fa-solid fa-chevron-up';
+            } else {
+                body.style.display = 'none';
+                icon.className = 'fa-solid fa-chevron-down';
+            }
+        }
+
+        function setLoadingState(isLoading, actionName = '') {
+            const spinnerContainer = document.getElementById('spinner-container');
+            const logBody = document.getElementById('log-body');
+
+            (isLoading) ? spinnerContainer.innerHTML = `<i class="fa-solid fa-spinner fa-spin ms-2 text-info"></i>` : spinnerContainer.innerHTML = '';
+            logBody.scrollTop = logBody.scrollHeight;
+        }
+
+        function appendLogs(logArray) {
+            const logBody = document.getElementById('log-body');
+            logArray.forEach(log => {
+                const li = document.createElement('li');
+                li.textContent = log;
+                logBody.appendChild(li);
+            });
+            logBody.scrollTop = logBody.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;") : '';
+        }
+    </script>
+</body>
+
+</html>

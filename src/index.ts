@@ -5,6 +5,8 @@ import { AppDataSource } from "./db"
 import { SyncService } from "./services/sync.service"
 import { SyncRoute } from "./routes/sync.route"
 import { LogService } from "./services/log.service"
+import { DataRoute } from "./routes/data.route"
+import path from "path"
 
 const app = express()
 app.use(cors())
@@ -26,5 +28,9 @@ app.use(async (req, res, next) => {
     next()
 })
 
+// Public folder
+app.use(express.static(path.join(__dirname, 'public')))
+
 // Endpoints
 app.use('/api/sync', SyncRoute)
+app.use('/api/data', DataRoute)

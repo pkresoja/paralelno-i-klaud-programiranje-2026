@@ -17,7 +17,7 @@ export class SyncService {
 
             for (let record of rsp.data.content) {
                 try {
-                    await this.syncData(logs, record)
+                    await SyncService.syncData(logs, record)
                     await sleep()
                 } catch (e: any) {
                     log(logs, `Failed syncing record id ${record.id}`, true)
@@ -47,18 +47,42 @@ export class SyncService {
         const remoteIds = await WebService.getLinkDataIds()
 
         const missing = remoteIds.data.filter(id => !localIds.includes(id))
-        // const toBeRemoved = localIds.filter(id => !remoteIds.data.includes(id))
+        const toBeRemoved = localIds.filter(id => !remoteIds.data.includes(id))
         const logs: string[] = []
 
         for (let id of missing) {
             try {
                 const record = await WebService.getLinkDataById(id)
-                await this.syncData(logs, record.data)
+                await SyncService.syncData(logs, record.data)
+                await sleep()
             } catch {
                 log(logs, `Sync failed for record id ${id}`, true)
             }
         }
 
+        // Removing deleted links
+        log(logs, `Total of ${toBeRemoved.length} players to be removed`)
+        if (toBeRemoved.length > 0) { 
+            for (let id of toBeRemoved) {
+                log(logs, `Removing player ${id}`)
+                await repo.delete({
+                    dataId: id
+                })
+            }
+        }
+
+        return logs
+    }
+
+    static async syncByDataId(id: number) {
+        const logs: string[] = []
+        try {
+            const record = await WebService.getLinkDataById(id)
+            await SyncService.syncData(logs, record.data)
+        } catch (e) {
+            console.log(e)
+            log(logs, `Sync failed for record id ${id}`, true)
+        }
         return logs
     }
 

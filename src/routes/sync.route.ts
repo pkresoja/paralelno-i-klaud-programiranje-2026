@@ -12,9 +12,14 @@ SyncRoute.post('/missing', async (req, res) => {
     await createSyncLog(SyncService.syncMissing, res)
 })
 
-async function createSyncLog(callback: Function, res: Response) {
+SyncRoute.post('/id/:id', async (req, res) => {
+    const id = Number(req.params.id)
+    await createSyncLog(SyncService.syncByDataId, res, id)
+})
+
+async function createSyncLog(callback: Function, res: Response, args?: any) {
     const start = new Date()
-    const logs = await callback()
+    const logs = args ? await callback(args) : await callback()
     await LogService.createCacheLog(start, logs)
     return res.json(logs)
 }
