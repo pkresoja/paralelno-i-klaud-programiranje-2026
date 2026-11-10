@@ -5,4 +5,10 @@ Izvorni kod sa vezbi
 
 ```
 DISCORD_BOT_TOKEN=<TOKEN_FROM_DEV_PORTAL>
+SERVER_PORT=3000
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASS=root
+DB_NAME=pkp_2026
 ```
